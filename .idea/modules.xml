@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/ImageKit.iml" filepath="$PROJECT_DIR$/ImageKit.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/imageutil/imageutil.iml" filepath="$PROJECT_DIR$/imageutil/imageutil.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ngimageview/ngimageview.iml" filepath="$PROJECT_DIR$/ngimageview/ngimageview.iml" />
     </modules>
   </component>
 </project>
