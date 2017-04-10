@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:fresco="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
+    <Button
+        android:id="@+id/bt_image"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!" />
+        android:layout_gravity="center"
+        android:text="UriActivity" />
 
+    <com.boqin.xgimageview.view.NGDraweeView
+        android:id="@+id/dv_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 </FrameLayout>

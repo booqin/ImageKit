@@ -14,39 +14,41 @@ import com.facebook.imagepipeline.image.ImageInfo;
 import com.facebook.imagepipeline.request.ImageRequest;
 import com.facebook.imagepipeline.request.ImageRequestBuilder;
 
+import android.Manifest;
 import android.content.Context;
 import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.support.annotation.DrawableRes;
+import android.support.annotation.RequiresPermission;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.ViewTreeObserver;
 
 /**
- * TODO
+ * 图片加载控件
  * Created by Boqin on 2017/4/7.
  * Modified by Boqin
  *
  * @Version
  */
-public class NGImageView extends SimpleDraweeView {
+public class NGDraweeView extends SimpleDraweeView {
     private int mWidth = 0, mHeight = 0;
     private String mUrl;//记录请求url,用于个别界面需要取出比较
     private boolean mIsCircle = false;
 
 
-    public NGImageView(Context context) {
+    public NGDraweeView(Context context) {
         super(context);
         init();
     }
 
-    public NGImageView(Context context, AttributeSet attrs) {
+    public NGDraweeView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
-    public NGImageView(Context context, AttributeSet attrs, int defStyle) {
+    public NGDraweeView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         init();
     }
@@ -139,6 +141,7 @@ public class NGImageView extends SimpleDraweeView {
      *
      * @param url
      */
+    @RequiresPermission(Manifest.permission.INTERNET)
     public void setLoadingImage(final String url) {
         mUrl = url;
         if (TextUtils.isEmpty(url)) {
@@ -211,7 +214,10 @@ public class NGImageView extends SimpleDraweeView {
 
     private void setURI(Uri uri) {
         DraweeController controller = Fresco.newDraweeControllerBuilder()
-                .setUri(uri).build();
+                .setUri(uri)
+                .setAutoPlayAnimations(true)
+                .setOldController(this.getController()) //复用减少不必要的内存分配
+                .build();
         this.setController(controller);
     }
 
@@ -229,6 +235,8 @@ public class NGImageView extends SimpleDraweeView {
                 .build();
         DraweeController controller = Fresco.newDraweeControllerBuilder()
                 .setUri(uri)
+                .setAutoPlayAnimations(true)
+                .setOldController(this.getController())
                 .setImageRequest(imageRequest)
                 .build();
         this.setController(controller);
