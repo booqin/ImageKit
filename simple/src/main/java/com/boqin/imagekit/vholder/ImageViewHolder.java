@@ -23,7 +23,7 @@ public class ImageViewHolder extends RecyclerView.ViewHolder{
     }
 
     public void rend(String uri){
-        mDraweeView.setLoadingImage(uri);
+        mDraweeView.setLoadingImageAjustment(uri);
     }
 
 }

@@ -1,6 +1,7 @@
 package com.boqin.imagekit.app;
 
-import com.facebook.drawee.backends.pipeline.Fresco;
+import com.boqin.xgimageview.NGFresco;
+import com.boqin.xgimageview.config.DefultConfig;
 
 import android.app.Application;
 
@@ -16,7 +17,6 @@ public class DemoApplication extends Application{
     @Override
     public void onCreate() {
         super.onCreate();
-
-        Fresco.initialize(this);
+        NGFresco.initialize(this, DefultConfig.getImagePipelineConfig(this), DefultConfig.getDraweeViewConfig(this));
     }
 }

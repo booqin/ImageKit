@@ -1,7 +1,11 @@
 package com.boqin.xgimageview.view;
 
+import com.boqin.xgimageview.NGFresco;
+import com.boqin.xgimageview.config.DraweeViewConfig;
+import com.boqin.xgimageview.util.ScreenUtil;
 import com.facebook.drawee.backends.pipeline.Fresco;
 import com.facebook.drawee.controller.BaseControllerListener;
+import com.facebook.drawee.controller.ControllerListener;
 import com.facebook.drawee.drawable.ScalingUtils;
 import com.facebook.drawee.generic.GenericDraweeHierarchy;
 import com.facebook.drawee.generic.GenericDraweeHierarchyBuilder;
@@ -20,10 +24,11 @@ import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.support.annotation.DrawableRes;
+import android.support.annotation.Nullable;
 import android.support.annotation.RequiresPermission;
 import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.view.ViewTreeObserver;
+import android.view.ViewGroup;
 
 /**
  * 图片加载控件
@@ -33,10 +38,9 @@ import android.view.ViewTreeObserver;
  * @Version
  */
 public class NGDraweeView extends SimpleDraweeView {
-    private int mWidth = 0, mHeight = 0;
-    private String mUrl;//记录请求url,用于个别界面需要取出比较
+    /** 记录请求url,用于个别界面需要取出比较 */
+    private String mUrl;
     private boolean mIsCircle = false;
-
 
     public NGDraweeView(Context context) {
         super(context);
@@ -54,19 +58,6 @@ public class NGDraweeView extends SimpleDraweeView {
     }
 
     /**
-     * 只能被调用一次
-     */
-    private void init() {
-        GenericDraweeHierarchyBuilder builder = new GenericDraweeHierarchyBuilder(getResources());
-        GenericDraweeHierarchy h = builder
-                .setActualImageScaleType(ScalingUtils.ScaleType.CENTER_CROP)
-                .setFadeDuration(400)
-                .build();
-        this.setHierarchy(h);
-    }
-
-
-    /**
      * 获取当前加载图片的url
      *
      * @return mUrl
@@ -76,7 +67,9 @@ public class NGDraweeView extends SimpleDraweeView {
     }
 
     /** 设置占位（默认）图片的res id。如果不想要默认图片，将resId设为0 */
-    public void setPlaceholderImage(@DrawableRes int resId) {
+    public void setPlaceholderImage(
+            @DrawableRes
+                    int resId) {
         if (resId > 0) {
             GenericDraweeHierarchy hierarchy = this.getHierarchy();
             if (hierarchy != null) {
@@ -97,12 +90,6 @@ public class NGDraweeView extends SimpleDraweeView {
         }
     }
 
-    public void setRoundingParams(RoundingParams rp) {
-        GenericDraweeHierarchy h = this.getHierarchy();
-        h.setRoundingParams(rp);
-        this.setHierarchy(h);
-    }
-
     public RoundingParams getRoundingParams() {
         GenericDraweeHierarchy h = this.getHierarchy();
 
@@ -111,6 +98,12 @@ public class NGDraweeView extends SimpleDraweeView {
         }
 
         return null;
+    }
+
+    public void setRoundingParams(RoundingParams rp) {
+        GenericDraweeHierarchy h = this.getHierarchy();
+        h.setRoundingParams(rp);
+        this.setHierarchy(h);
     }
 
     /**
@@ -137,38 +130,52 @@ public class NGDraweeView extends SimpleDraweeView {
     /**
      * 加载网络图片。
      * 根据该LoadingImageView的长宽去取（Urs上的）图片。所以该View必须是尺寸确定的。
-     * 否则需要调用{@link #setLoadingImage(String, int, int)}
+     * <p>如果需要手动改变宽高，你需要调用{@link #setLoadingImage(String, int, int)}
+     * <p>如果需要自适应图片宽高，可以通过{@link #setLoadingImageAjustment(String)}
      *
-     * @param url
+     * @param url 图片链接地址
      */
     @RequiresPermission(Manifest.permission.INTERNET)
     public void setLoadingImage(final String url) {
         mUrl = url;
         if (TextUtils.isEmpty(url)) {
-            setURI(null);
+            setURIToController(null);
             return;
         }
 
-        ViewTreeObserver vo = this.getViewTreeObserver();
-        vo.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
-            @Override
-            public boolean onPreDraw() {
-                getViewTreeObserver().removeOnPreDrawListener(this);
+        setURIToController(url);
+    }
 
-                mWidth = getWidth();
-                mHeight = getHeight();
-                load(url, mWidth, mHeight);
+    /**
+     * 加载已知尺寸的网络图片。
+     */
+    @RequiresPermission(Manifest.permission.INTERNET)
+    public void setLoadingImage(final String url, int dipWidth, int dipHeight) {
+        mUrl = url;
+        if (TextUtils.isEmpty(url)) {
+            setURIToController(null);
+            return;
+        }
+        setURIToController(url, dipWidth, dipHeight);
+    }
 
-                return true;
-            }
-        });
+    /**
+     * 加载已知尺寸的网络图片。
+     */
+    @RequiresPermission(Manifest.permission.INTERNET)
+    public void setLoadingImageAjustment(final String url) {
+        mUrl = url;
+        if (TextUtils.isEmpty(url)) {
+            setURIToController(null);
+            return;
+        }
+        setURIToControllerAjust(url);
     }
 
     /**
      * 清除url对应的磁盘缓存以及内存缓存，重新加载图片
-     *
-     * @param url
      */
+    @RequiresPermission(Manifest.permission.INTERNET)
     public void loadImageAndEvictCache(String url) {
         Uri uri = Uri.parse(url);
 
@@ -181,9 +188,8 @@ public class NGDraweeView extends SimpleDraweeView {
 
     /**
      * 清除url对应的磁盘缓存以及内存缓存，重新加载图片
-     *
-     * @param uri
      */
+    @RequiresPermission(Manifest.permission.INTERNET)
     public void loadImageAndEvictCache(Uri uri) {
         ImagePipeline imagePipeline = Fresco.getImagePipeline();
         imagePipeline.evictFromMemoryCache(uri);
@@ -193,26 +199,30 @@ public class NGDraweeView extends SimpleDraweeView {
     }
 
     /**
-     * 加载已知尺寸的网络图片。
-     *
-     * @param url
+     * 把图片下载到磁盘缓存，但是不显示出来
      */
-    public void setLoadingImage(final String url, int width, int height) {
-        mUrl = url;
-        if (TextUtils.isEmpty(url)) {
-            setURI(null);
-            return;
-        }
-        load(url, width, height);
+    public void downloadToDisCache(String url) {
+        Uri uri = Uri.parse(url.trim());
+        ImageRequest request = ImageRequestBuilder.newBuilderWithSource(uri).build();
+        Fresco.getImagePipeline().prefetchToDiskCache(request, this.getContext().getApplicationContext());
+
     }
 
-    private void load(String url, int w, int h) {
-        url = makeServerClipUrl(url.trim(), w, h);
-        Uri uri = Uri.parse(url);
-        setURI(uri);
+    /**
+     * 初始化设置
+     */
+    private void init() {
+        GenericDraweeHierarchyBuilder builder = new GenericDraweeHierarchyBuilder(getResources());
+        //加载默认配置
+        DraweeViewConfig draweeViewConfig = NGFresco.getDraweeViewConfig();
+        draweeViewConfig.setGenericDraweeHierarchy(builder);
+        GenericDraweeHierarchy h = builder.build();
+        this.setHierarchy(h);
     }
 
-    private void setURI(Uri uri) {
+
+    private void setURIToController(String uriString) {
+        Uri uri = Uri.parse(uriString);
         DraweeController controller = Fresco.newDraweeControllerBuilder()
                 .setUri(uri)
                 .setAutoPlayAnimations(true)
@@ -221,110 +231,68 @@ public class NGDraweeView extends SimpleDraweeView {
         this.setController(controller);
     }
 
-    /**
-     * 优先从Cache（Memory、Disk)中加载下载过的图片
-     *
-     * @param url
-     */
-    public void setLoadingImageFromCache(String url, int width, int height) {
-        mUrl = url;
-        Uri uri = Uri.parse(makeServerClipUrl(url.trim(), width, height));
-
-        ImageRequest imageRequest = ImageRequestBuilder.newBuilderWithSource(uri)
-                .setLowestPermittedRequestLevel(ImageRequest.RequestLevel.FULL_FETCH)
-                .build();
+    private void setURIToController(String uriString, int dipW, int dipH) {
+        Uri uri = Uri.parse(uriString);
+        final ViewGroup.LayoutParams layoutParams = this.getLayoutParams();
+        layoutParams.width = dipW;
+        layoutParams.height = dipH;
         DraweeController controller = Fresco.newDraweeControllerBuilder()
                 .setUri(uri)
                 .setAutoPlayAnimations(true)
-                .setOldController(this.getController())
-                .setImageRequest(imageRequest)
+                .setOldController(this.getController()) //复用减少不必要的内存分配
                 .build();
         this.setController(controller);
     }
 
-    /**
-     * 优先从Cache（Memory、Disk)中加载下载过的图片
-     *
-     * @param url
-     */
-    public void setLoadingImageFromCache(String url, int width, int height, final ImageDownloadListener listener) {
-        mUrl = url;
-        Uri uri = Uri.parse(makeServerClipUrl(url.trim(), width, height));
+    private void setURIToControllerAjust(String uriString) {
+        Uri uri = Uri.parse(uriString);
+        final ViewGroup.LayoutParams layoutParams = this.getLayoutParams();
+        ControllerListener controllerListener = new BaseControllerListener<ImageInfo>() {
+            @Override
+            public void onFinalImageSet(String id,
+                    @Nullable
+                            ImageInfo imageInfo,
+                    @Nullable
+                            Animatable anim) {
+                if (imageInfo == null) {
+                    return;
+                }
+                //设置宽高比
+                int height = imageInfo.getHeight();
+                int width = imageInfo.getWidth();
+                //判断图片宽度是否大于屏幕宽
+                layoutParams.width = width > ScreenUtil.getScreenWidth(NGDraweeView.this.getContext()) ? ScreenUtil
+                        .getScreenWidth(NGDraweeView.this.getContext()) : width;
 
-        ImageRequest imageRequest = ImageRequestBuilder.newBuilderWithSource(uri)
-                .setLowestPermittedRequestLevel(ImageRequest.RequestLevel.FULL_FETCH)
+                //按比例设置
+                layoutParams.height = (int) ((float) (layoutParams.width * height) / (float) width);
+                //设置布局参数
+                NGDraweeView.this.setLayoutParams(layoutParams);
+            }
+
+            @Override
+            public void onIntermediateImageSet(String id,
+                    @Nullable
+                            ImageInfo imageInfo) {
+            }
+
+            @Override
+            public void onFailure(String id, Throwable throwable) {
+                throwable.printStackTrace();
+            }
+        };
+        //网络请求图片，重设大小加载到内存
+        ImageRequest request = ImageRequestBuilder.newBuilderWithSource(uri)
+                .setResizeOptions(new ResizeOptions(ScreenUtil.getScreenWidth(this.getContext()),
+                        ScreenUtil.getScreenHeight(this.getContext())))
                 .build();
         DraweeController controller = Fresco.newDraweeControllerBuilder()
                 .setUri(uri)
-                .setImageRequest(imageRequest)
-                .setControllerListener(new BaseControllerListener<ImageInfo>() {
-                    @Override
-                    public void onFinalImageSet(String id, ImageInfo imageInfo, Animatable animatable) {
-                        if (listener != null) {
-                            listener.onImageGet();
-                        }
-                    }
-                })
+                .setImageRequest(request)
+                .setAutoPlayAnimations(true)
+                .setOldController(this.getController()) //复用减少不必要的内存分配
+                .setControllerListener(controllerListener)
                 .build();
         this.setController(controller);
-    }
-
-    /**
-     * 把图片下载到磁盘缓存，但是不显示出来
-     */
-    public void downloadToDisCache(String url, int width, int height) {
-        Uri uri = Uri.parse(makeServerClipUrl(url.trim(), width, height));
-        ImageRequest request = ImageRequestBuilder.newBuilderWithSource(uri).build();
-        Fresco.getImagePipeline().prefetchToDiskCache(request, this.getContext().getApplicationContext());
-
-    }
-
-    /**
-     * 添加图片服务器裁剪参数
-     *
-     * @param url
-     * @return
-     */
-    public static String makeServerClipUrl(String url, int clipWidth, int clipHeight) {
-        // 存储在改服务器的图片才能进行裁剪
-        if (url.startsWith("http://paopao.nosdn.127.net")) {
-            if (clipWidth >= 0 || clipHeight >= 0) { // 不要都是0的
-                // 添加裁剪参数?resize=100x100
-                StringBuilder sb = new StringBuilder(url);
-                sb.append("?resize=").append(clipWidth).append("x").append(clipHeight).append("&type=webp");
-
-                return sb.toString();
-            } else {
-                return url + "?type=webp";
-            }
-        }
-
-        // 返回原地址
-        return url;
-    }
-
-    /**
-     * 显示图库相片时使用的方法
-     *
-     * @param url
-     * @param width
-     * @param height
-     */
-    public void setGalleryImage(final String url, int width, int height) {
-        Uri uri = Uri.parse(url);
-        ImageRequest imageRequest = ImageRequestBuilder
-                .newBuilderWithSource(uri)
-                .setResizeOptions(new ResizeOptions(width, height))//图片目标大小
-                .build();
-        DraweeController controller = Fresco.newDraweeControllerBuilder()
-                .setOldController(getController())
-                .setImageRequest(imageRequest)
-                .build();
-        this.setController(controller);
-
-    }
-
-    public static interface ImageDownloadListener {
-        public void onImageGet();
     }
 }

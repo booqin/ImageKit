@@ -1,8 +1,9 @@
-package com.boqin.image_kit;
+package com.boqin.xgimageview.config;
 
 import java.io.File;
 
-import com.boqin.image_kit.util.FileUtil;
+import com.boqin.xgimageview.R;
+import com.boqin.xgimageview.util.FileUtil;
 import com.facebook.cache.disk.DiskCacheConfig;
 import com.facebook.drawee.drawable.ProgressBarDrawable;
 import com.facebook.imagepipeline.core.ImagePipelineConfig;
@@ -22,7 +23,7 @@ public class DefultConfig {
     private static long MAX_CACHE_SIZE_LOW = 100 * 1024 * 1024;
     private static long MAX_CACHE_SIZE_VERY_LOW = 50 * 1024 * 1024;
 
-    public static ImagePipelineConfig getConfig(Context context){
+    public static ImagePipelineConfig getImagePipelineConfig(Context context){
         DiskCacheConfig diskConfig = DiskCacheConfig.newBuilder(context)
                 .setBaseDirectoryPath(getImageCachePath(context))
                 .setBaseDirectoryName(IMAGE_CACHE)
